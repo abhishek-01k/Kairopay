@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && pnpm install && pnpm build --filter=kairopay",
-  "installCommand": "pnpm install",
+  "buildCommand": "cd ../.. && pnpm build --filter=kairopay",
+  "installCommand": "pnpm install --filter=kairopay...",
   "framework": "nextjs"
 }
