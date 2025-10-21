@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import connectDB from "@/lib/db/mongodb";
+import { successResponse, errorResponse } from "@/lib/utils/response";
 
 export async function GET() {
   try {
@@ -8,24 +8,16 @@ export async function GET() {
     const dbStatus =
       mongoose.connection.readyState === 1 ? "connected" : "disconnected";
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        status: "healthy",
-        database: dbStatus,
-        timestamp: new Date().toISOString(),
-      },
+    return successResponse({
+      status: "healthy",
+      database: dbStatus,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: "DATABASE_CONNECTION_FAILED",
-          message: error instanceof Error ? error.message : "Unknown error",
-        },
-      },
-      { status: 500 }
+    return errorResponse(
+      "DATABASE_CONNECTION_FAILED",
+      error instanceof Error ? error.message : "Unknown error",
+      500
     );
   }
 }
