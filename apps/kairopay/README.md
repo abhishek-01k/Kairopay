@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+# KairoPay - Crypto Payment Gateway
 
-## Getting Started
+A non-custodial, developer-friendly crypto payment gateway that lets merchants accept payments in any crypto asset on any chain.
 
-First, run the development server:
+## 🚀 Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install dependencies
+pnpm install
+
+# Configure environment
+cp .env.example .env.local
+# Edit .env.local with your MongoDB URI
+
+# Start development server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000/api/health](http://localhost:3000/api/health) to verify the setup.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📚 Documentation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load Inter, a custom Google Font.
+Comprehensive API documentation is available in the [`docs/`](./docs/) folder:
 
-## Learn More
+- **[Getting Started](./docs/getting-started.md)** - Installation and setup guide
+- **[API Documentation](./docs/README.md)** - Complete API reference
+- **[Merchant API](./docs/merchant-api.md)** - Merchant registration and management
+- **[Database Models](./docs/database-models.md)** - Data structure reference
+- **[Webhooks](./docs/webhooks.md)** - Event notifications guide
 
-To learn more about Next.js, take a look at the following resources:
+## 🏗️ Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+apps/kairopay/
+├── app/
+│   ├── api/              # API routes
+│   │   ├── merchant/     # Merchant endpoints
+│   │   ├── orders/       # Order endpoints (coming soon)
+│   │   └── health/       # Health check
+│   └── ...
+├── lib/
+│   ├── db/               # Database layer
+│   │   ├── mongodb.ts    # Connection
+│   │   └── models/       # Mongoose models
+│   ├── utils/            # Utilities
+│   │   ├── id-generator.ts
+│   │   ├── crypto.ts
+│   │   └── response.ts
+│   └── constants/        # Constants and enums
+├── types/                # TypeScript types
+└── docs/                 # Documentation
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Tech Stack
 
-## Deploy on Vercel
+- **Framework:** Next.js 15 (App Router)
+- **Database:** MongoDB + Mongoose
+- **Auth:** Privy (coming soon)
+- **Blockchain:** Alchemy SDK (coming soon)
+- **Language:** TypeScript
+- **Package Manager:** pnpm
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔧 Available Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm dev          # Start development server
+pnpm build        # Build for production
+pnpm start        # Start production server
+pnpm lint         # Run ESLint
+pnpm check-types  # TypeScript type checking
+```
+
+## 📡 API Endpoints
+
+### Health Check
+
+```bash
+GET /api/health
+```
+
+### Merchant Management
+
+```bash
+POST /api/merchant/register              # Register merchant
+POST /api/merchant/register/app          # Create app
+GET  /api/merchant/{privy_did}           # Get merchant profile
+GET  /api/merchant/{privy_did}/balances  # Get balances
+```
+
+See [Merchant API docs](./docs/merchant-api.md) for detailed usage.
+
+## 🧪 Testing
+
+```bash
+# Register a test merchant
+curl -X POST http://localhost:3000/api/merchant/register \
+  -H "Content-Type: application/json" \
+  -d '{"privy_did": "did:privy:test123"}'
+
+# Create a test app
+curl -X POST http://localhost:3000/api/merchant/register/app \
+  -H "Content-Type: application/json" \
+  -d '{"privy_did": "did:privy:test123", "name": "Test Shop"}'
+```
+
+## 🌍 Environment Variables
+
+Required environment variables (create `.env.local`):
+
+```env
+MONGODB_URI=mongodb://localhost:27017/kairopay
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+API_SECRET_KEY=your_secret_key_here
+```
+
+Optional (for full functionality):
+
+```env
+PRIVY_APP_ID=your_privy_app_id
+PRIVY_APP_SECRET=your_privy_app_secret
+ALCHEMY_API_KEY=your_alchemy_api_key
+```
+
+## 📦 Database Setup
+
+### Local MongoDB
+
+```bash
+# macOS
+brew install mongodb-community
+brew services start mongodb-community
+```
+
+### MongoDB Atlas
+
+1. Create a free cluster at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+2. Get connection string
+3. Update `MONGODB_URI` in `.env.local`
+
+## 🤝 Contributing
+
+This is a private project. For questions or issues, contact the team.
+
+## 📄 License
+
+Proprietary - All rights reserved
+
+---
+
+**For detailed documentation, visit the [`docs/`](./docs/) folder.**
