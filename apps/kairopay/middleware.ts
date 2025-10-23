@@ -5,11 +5,10 @@ export function middleware(request: NextRequest) {
   // Get the origin from the request
   const origin = request.headers.get("origin");
   
-  // Allow requests from localhost:3000 (dashboard) and localhost:3001
+  // Allow requests only from dashboard (localhost:3000 for dev, dashboard.kairopay.xyz for production)
   const allowedOrigins = [
     "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
+    "https://dashboard.kairopay.xyz",
   ];
   
   const defaultOrigin = "http://localhost:3000";
