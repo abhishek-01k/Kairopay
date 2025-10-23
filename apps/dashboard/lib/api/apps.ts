@@ -104,26 +104,42 @@ export const getAppById = async (id: string): Promise<AppDetails | null> => {
   };
 };
 
+const generateApiKey = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let secret = 'sk_';
+  for (let i = 0; i < 48; i++) {
+    secret += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return secret;
+};
+
 export const createApp = async (
-  data: Omit<App, "id" | "createdAt" | "status">
+  data: Omit<App, "id" | "createdAt" | "status" | "api_key">
 ): Promise<App> => {
   await new Promise((resolve) => setTimeout(resolve, 500));
   
+  const api_key = generateApiKey();
+  const appId = `app_${Date.now()}`;
+  
   const newApp: App = {
     ...data,
-    id: Date.now().toString(),
+    id: appId,
     createdAt: new Date().toISOString(),
     status: "active",
   };
   
-  // Save to localStorage
+  // Save to localStorage (without the secret - only return it on creation)
   if (typeof window !== "undefined") {
     const apps = await getApps();
     const updatedApps = [...apps, newApp];
     localStorage.setItem("merchant_apps", JSON.stringify(updatedApps));
   }
   
-  return newApp;
+  // Return the app with the api_key (only available on creation)
+  return {
+    ...newApp,
+    api_key,
+  };
 };
 
 export const deleteApp = async (id: string): Promise<void> => {

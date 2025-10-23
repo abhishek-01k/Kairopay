@@ -6,6 +6,7 @@ export interface App {
   createdAt: string;
   environment: "Dev" | "Prod";
   status: "active" | "inactive";
+  api_key?: string; // Only returned on creation
 }
 
 export interface Chain {

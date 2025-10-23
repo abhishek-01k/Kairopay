@@ -24,17 +24,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (!ready || !authenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-black">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black dark:border-blue-500"></div>
+          <p className="mt-4 text-gray-600 dark:text-blue-300">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden ">
       {isMobileSidebarOpen && (
         <div
           className="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
@@ -67,13 +67,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Mobile Header with Menu Button */}
-        <div className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <div className="lg:hidden bg-white dark:bg-black border-b border-gray-200 dark:border-blue-900/30 px-4 py-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMobileSidebarOpen(true)}
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6 text-black dark:text-white" />
           </Button>
         </div>
 

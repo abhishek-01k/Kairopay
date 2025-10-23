@@ -2,9 +2,9 @@
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter, useParams } from "next/navigation";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getAppById } from "@/lib/api/apps";
+import { useState, useMemo } from "react";
+import { useMerchantProfile } from "@/lib/queries";
+import { Chain, Transaction } from "@/types/app";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 
 export default function AppDetailsPage() {
-  const { ready, authenticated } = usePrivy();
+  const { ready, authenticated, user } = usePrivy();
   const router = useRouter();
   const params = useParams();
   const appId = params.appId as string;
@@ -42,11 +42,27 @@ export default function AppDetailsPage() {
     address: "",
   });
 
-  const { data: appDetails, isLoading } = useQuery({
-    queryKey: ["app", appId],
-    queryFn: () => getAppById(appId),
-    enabled: ready && authenticated && !!appId,
-  });
+  const privyDid = user?.id;
+  const { data: merchantProfile, isLoading } = useMerchantProfile(privyDid);
+
+  // Find the specific app from the merchant's apps
+  const appDetails = useMemo(() => {
+    if (!merchantProfile || !appId) return null;
+    
+    const app = merchantProfile.apps.find((a) => a.app_id === appId);
+    if (!app) return null;
+
+    // For now, return mock data for balances and transactions until we have real endpoints
+    return {
+      ...app,
+      name: app.name,
+      description: "Application details",
+      environment: "Production" as const,
+      totalBalance: "0.00",
+      balances: [] as Chain[],
+      transactions: [] as Transaction[],
+    };
+  }, [merchantProfile, appId]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -214,30 +230,42 @@ export default function AppDetailsPage() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Balances by Chain
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {appDetails.balances.map((chain) => (
-                  <Card key={chain.id}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <Wallet className="w-4 h-4 text-indigo-600" />
-                          {chain.name}
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-1">
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {chain.balance} {chain.symbol}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          ≈ ${chain.usdValue}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {appDetails.balances.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {appDetails.balances.map((chain) => (
+                    <Card key={chain.id}>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Wallet className="w-4 h-4 text-indigo-600" />
+                            {chain.name}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-1">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {chain.balance} {chain.symbol}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            ≈ ${chain.usdValue}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Wallet className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-600 dark:text-gray-400 mb-2">No balances yet</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Your balances will appear here once you start receiving payments
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Recent Transactions */}
@@ -246,46 +274,58 @@ export default function AppDetailsPage() {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Recent Transactions
                 </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActiveTab("transactions")}
-                >
-                  View All
-                </Button>
+                {appDetails.transactions.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("transactions")}
+                  >
+                    View All
+                  </Button>
+                )}
               </div>
               <Card>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {appDetails.transactions.slice(0, 5).map((tx) => (
-                      <div key={tx.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {getStatusIcon(tx.status)}
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                                {tx.hash}
-                                <button onClick={() => copyToClipboard(tx.hash)}>
-                                  <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600" />
-                                </button>
+                <CardContent className={appDetails.transactions.length === 0 ? "p-8 text-center" : "p-0"}>
+                  {appDetails.transactions.length > 0 ? (
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {appDetails.transactions.slice(0, 5).map((tx) => (
+                        <div key={tx.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {getStatusIcon(tx.status)}
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                  {tx.hash}
+                                  <button onClick={() => copyToClipboard(tx.hash)}>
+                                    <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                                  </button>
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {tx.chain} • {formatTimestamp(tx.timestamp)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {tx.amount} ETH
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {tx.chain} • {formatTimestamp(tx.timestamp)}
+                                ${tx.usdValue}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {tx.amount} ETH
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              ${tx.usdValue}
-                            </p>
-                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">No transactions yet</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500">
+                        Transactions will appear here when customers make payments
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -298,88 +338,98 @@ export default function AppDetailsPage() {
               All Transactions
             </h2>
             <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          Transaction Hash
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          From
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          To
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          Amount
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          Chain
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
-                          Time
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {appDetails.transactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                          <td className="px-4 py-3">
-                            <Badge className={`${getStatusColor(tx.status)} text-xs`}>
-                              {tx.status}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm text-gray-900 dark:text-white">
-                                {tx.hash}
-                              </span>
-                              <button onClick={() => copyToClipboard(tx.hash)}>
-                                <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600" />
-                              </button>
-                              <ExternalLink className="w-3 h-3 text-gray-400 hover:text-gray-600" />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
-                              {tx.from}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
-                              {tx.to}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div>
-                              <p className="font-semibold text-gray-900 dark:text-white">
-                                {tx.amount} ETH
-                              </p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
-                                ${tx.usdValue}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm text-gray-900 dark:text-white">
-                              {tx.chain}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {formatTimestamp(tx.timestamp)}
-                            </span>
-                          </td>
+              <CardContent className={appDetails.transactions.length === 0 ? "p-8 text-center" : "p-0"}>
+                {appDetails.transactions.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            Transaction Hash
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            From
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            To
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            Amount
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            Chain
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">
+                            Time
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {appDetails.transactions.map((tx) => (
+                          <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <td className="px-4 py-3">
+                              <Badge className={`${getStatusColor(tx.status)} text-xs`}>
+                                {tx.status}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm text-gray-900 dark:text-white">
+                                  {tx.hash}
+                                </span>
+                                <button onClick={() => copyToClipboard(tx.hash)}>
+                                  <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                                </button>
+                                <ExternalLink className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                {tx.from}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                {tx.to}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <p className="font-semibold text-gray-900 dark:text-white">
+                                  {tx.amount} ETH
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  ${tx.usdValue}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-900 dark:text-white">
+                                {tx.chain}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {formatTimestamp(tx.timestamp)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <>
+                    <ExternalLink className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-600 dark:text-gray-400 mb-2">No transactions yet</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Transactions will appear here when customers make payments
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -398,82 +448,91 @@ export default function AppDetailsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Balance Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {appDetails.balances.map((chain) => (
-                    <div
-                      key={chain.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {chain.name}
-                        </span>
-                        <Wallet className="w-4 h-4 text-gray-400" />
+                {appDetails.balances.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {appDetails.balances.map((chain) => (
+                      <div
+                        key={chain.id}
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {chain.name}
+                          </span>
+                          <Wallet className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {chain.balance} {chain.symbol}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          ≈ ${chain.usdValue}
+                        </p>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button className="w-full mt-3 bg-indigo-600 hover:bg-indigo-700">
+                              <ArrowUpRight className="w-4 h-4 mr-2" />
+                              Withdraw
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Withdraw {chain.name}</DialogTitle>
+                              <DialogDescription>
+                                Enter the amount and destination address
+                              </DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleWithdraw} className="space-y-4 mt-4">
+                              <div>
+                                <Label htmlFor="amount">Amount</Label>
+                                <Input
+                                  id="amount"
+                                  type="number"
+                                  step="0.000001"
+                                  placeholder="0.00"
+                                  value={withdrawForm.amount}
+                                  onChange={(e) =>
+                                    setWithdrawForm({ ...withdrawForm, amount: e.target.value })
+                                  }
+                                  required
+                                  className="mt-1"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Available: {chain.balance} {chain.symbol}
+                                </p>
+                              </div>
+                              <div>
+                                <Label htmlFor="address">Destination Address</Label>
+                                <Input
+                                  id="address"
+                                  placeholder="0x..."
+                                  value={withdrawForm.address}
+                                  onChange={(e) =>
+                                    setWithdrawForm({ ...withdrawForm, address: e.target.value })
+                                  }
+                                  required
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div className="pt-4">
+                                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
+                                  Confirm Withdrawal
+                                </Button>
+                              </div>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
                       </div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {chain.balance} {chain.symbol}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        ≈ ${chain.usdValue}
-                      </p>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="w-full mt-3 bg-indigo-600 hover:bg-indigo-700">
-                            <ArrowUpRight className="w-4 h-4 mr-2" />
-                            Withdraw
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Withdraw {chain.name}</DialogTitle>
-                            <DialogDescription>
-                              Enter the amount and destination address
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleWithdraw} className="space-y-4 mt-4">
-                            <div>
-                              <Label htmlFor="amount">Amount</Label>
-                              <Input
-                                id="amount"
-                                type="number"
-                                step="0.000001"
-                                placeholder="0.00"
-                                value={withdrawForm.amount}
-                                onChange={(e) =>
-                                  setWithdrawForm({ ...withdrawForm, amount: e.target.value })
-                                }
-                                required
-                                className="mt-1"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Available: {chain.balance} {chain.symbol}
-                              </p>
-                            </div>
-                            <div>
-                              <Label htmlFor="address">Destination Address</Label>
-                              <Input
-                                id="address"
-                                placeholder="0x..."
-                                value={withdrawForm.address}
-                                onChange={(e) =>
-                                  setWithdrawForm({ ...withdrawForm, address: e.target.value })
-                                }
-                                required
-                                className="mt-1"
-                              />
-                            </div>
-                            <div className="pt-4">
-                              <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
-                                Confirm Withdrawal
-                              </Button>
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Wallet className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-600 dark:text-gray-400 mb-2">No balances available</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Start accepting payments to build up your balance
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

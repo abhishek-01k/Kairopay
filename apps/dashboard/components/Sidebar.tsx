@@ -14,9 +14,11 @@ import {
   Github,
   Twitter,
   UserCircle,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface NavItem {
   name: string;
@@ -26,6 +28,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: "Applications", href: "/dashboard", icon: LayoutGrid },
+  { name: "Balance", href: "/dashboard/balances", icon: Wallet },
   { name: "Profile", href: "/dashboard/profile", icon: UserCircle },
 ];
 
@@ -67,16 +70,20 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 w-64">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col h-full bg-white dark:bg-black border-r border-gray-200 dark:border-blue-900/30 w-64">
+      <div className="p-6 border-b border-gray-200 dark:border-blue-900/30">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-black dark:text-white">Kairopay</h2>
+          <ThemeToggle />
+        </div>
         <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10 bg-gray-900 dark:bg-gray-700">
-            <AvatarFallback className="bg-gray-900 dark:bg-gray-700 text-white font-semibold">
+          <Avatar className="w-10 h-10 bg-gray-100 dark:bg-blue-950 border border-gray-200 dark:border-blue-900">
+            <AvatarFallback className="bg-gray-100 dark:bg-blue-950 text-black dark:text-blue-400 font-semibold">
               {getUserInitial()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+            <p className="text-sm font-medium text-black dark:text-white truncate">
               {getUserEmail()}
             </p>
           </div>
@@ -95,8 +102,8 @@ export default function Sidebar() {
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   active
-                    ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    ? "bg-black text-white dark:bg-blue-600 dark:text-white"
+                    : "text-gray-700 dark:text-blue-200 hover:bg-gray-100 dark:hover:bg-blue-950"
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -109,7 +116,7 @@ export default function Sidebar() {
 
         {/* Divider */}
         <div className="pt-4 pb-2">
-          <div className="border-t border-gray-200 dark:border-gray-700" />
+          <div className="border-t border-gray-200 dark:border-blue-900/30" />
         </div>
 
         {/* Resources */}
@@ -129,7 +136,7 @@ export default function Sidebar() {
               <button
                 key={item.name}
                 onClick={handleClick}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-blue-200 hover:bg-gray-100 dark:hover:bg-blue-950 transition-colors"
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 <span className="flex-1 text-left">{item.name}</span>
@@ -140,11 +147,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-t border-gray-200 dark:border-blue-900/30">
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="w-full justify-start text-gray-700 dark:text-blue-200 hover:bg-gray-100 dark:hover:bg-blue-950"
         >
           <LogOut className="w-5 h-5 mr-3" />
           Logout
