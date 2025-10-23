@@ -20,13 +20,10 @@ Visit [http://localhost:3000/api/health](http://localhost:3000/api/health) to ve
 
 ## 📚 Documentation
 
-Comprehensive API documentation is available in the [`docs/`](./docs/) folder:
-
-- **[Getting Started](./docs/getting-started.md)** - Installation and setup guide
-- **[API Documentation](./docs/README.md)** - Complete API reference
-- **[Merchant API](./docs/merchant-api.md)** - Merchant registration and management
-- **[Database Models](./docs/database-models.md)** - Data structure reference
-- **[Webhooks](./docs/webhooks.md)** - Event notifications guide
+- **[Quick Start](./docs/README.md)** - Setup and getting started
+- **[API Reference](./docs/api.md)** - Complete API documentation with examples
+- **[TypeScript Types](./types/README.md)** - Type definitions for frontend
+- **[Database Models](./docs/database-models.md)** - Database schema reference
 
 ## 🏗️ Architecture
 
@@ -105,21 +102,25 @@ curl -X POST http://localhost:3000/api/merchant/register/app \
 
 ## 🌍 Environment Variables
 
-Required environment variables (create `.env.local`):
+Copy `.env.example` to `.env.local` and configure:
 
-```env
-MONGODB_URI=mongodb://localhost:27017/kairopay
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-API_SECRET_KEY=your_secret_key_here
+```bash
+cp .env.example .env.local
 ```
 
-Optional (for full functionality):
+**Required:**
 
-```env
-PRIVY_APP_ID=your_privy_app_id
-PRIVY_APP_SECRET=your_privy_app_secret
-ALCHEMY_API_KEY=your_alchemy_api_key
-```
+- `MONGODB_URI` - MongoDB connection string
+- `NEXT_PUBLIC_APP_URL` - Application base URL
+- `API_SECRET_KEY` - Secret for signing webhooks
+
+**Optional (for full features):**
+
+- `PRIVY_APP_ID` - Privy authentication
+- `PRIVY_APP_SECRET` - Privy server key
+- `ALCHEMY_API_KEY` - Blockchain data
+
+See [`.env.example`](./.env.example) for complete reference.
 
 ## 📦 Database Setup
 

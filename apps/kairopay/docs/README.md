@@ -1,105 +1,162 @@
-# KairoPay API Documentation
+# KairoPay Documentation
 
-Welcome to the KairoPay API documentation. KairoPay is a non-custodial crypto payment gateway that lets merchants accept payments in any crypto asset on any chain.
+KairoPay is a non-custodial crypto payment gateway that lets merchants accept payments in any crypto asset on any chain.
 
-## 📚 Documentation Index
+## 📚 Documentation
 
-- [**Getting Started**](./getting-started.md) - Setup, installation, and first steps
-- [**API Reference**](./api-reference.md) - Quick reference for all endpoints
-- [**cURL Examples**](./curl-examples.md) - Copy-paste ready cURL commands
-- [**Merchant API**](./merchant-api.md) - Merchant registration and management
-- [**Orders API**](./orders-api.md) - Order creation and payment tracking _(Coming Soon)_
-- [**Webhooks**](./webhooks.md) - Event notifications and callbacks
-- [**Database Models**](./database-models.md) - Data structure reference
+- **[API Reference](./api.md)** - Complete API documentation with examples
+- **[TypeScript Types](../types/README.md)** - Type definitions for frontend
+- **[Database Models](./database-models.md)** - Database schema reference
 
 ## 🚀 Quick Start
 
-1. **Install dependencies:**
+### 1. Install Dependencies
 
-   ```bash
-   pnpm install
-   ```
+```bash
+pnpm install
+```
 
-2. **Configure environment:**
+### 2. Setup MongoDB
 
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your MongoDB URI
-   ```
+**Local MongoDB:**
 
-3. **Start development server:**
+```bash
+# macOS
+brew install mongodb-community
+brew services start mongodb-community
+```
 
-   ```bash
-   pnpm dev
-   ```
+**Or use [MongoDB Atlas](https://mongodb.com/cloud/atlas)** (free tier available)
 
-4. **Test the API:**
-   ```bash
-   curl http://localhost:3000/api/health
-   ```
+### 3. Configure Environment
+
+Copy the example environment file and fill in your values:
+
+```bash
+cd apps/kairopay
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your configuration:
+
+```env
+# Required
+MONGODB_URI=mongodb://localhost:27017/kairopay
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+API_SECRET_KEY=dev_secret_key_change_in_production
+
+# Optional (for full features)
+PRIVY_APP_ID=your_privy_app_id
+PRIVY_APP_SECRET=your_privy_app_secret
+ALCHEMY_API_KEY=your_alchemy_api_key
+```
+
+### 4. Start Development Server
+
+```bash
+cd apps/kairopay
+pnpm dev
+```
+
+### 5. Test the API
+
+```bash
+# Health check
+curl http://localhost:3000/api/health
+
+# Register merchant
+curl -X POST http://localhost:3000/api/merchant/register \
+  -H "Content-Type: application/json" \
+  -d '{"privy_did": "did:privy:test123"}'
+
+# Create app
+curl -X POST http://localhost:3000/api/merchant/register/app \
+  -H "Content-Type: application/json" \
+  -d '{"privy_did": "did:privy:test123", "name": "My Shop"}'
+```
+
+See **[API Reference](./api.md)** for complete documentation.
 
 ## 🏗️ Architecture
 
 ```
-Customer Payment Flow:
-  Customer → SDK Checkout → Payment → Tx Verification → Webhook → Merchant
-
-Merchant Dashboard:
-  Merchant → Privy Auth → Dashboard → Orders/Balances → Analytics
+Customer → Checkout UI → Payment → Tx Verification → Webhook → Merchant
 ```
-
-## 📋 API Overview
-
-### Base URL
-
-- **Development:** `http://localhost:3000/api`
-- **Production:** `https://pay.kairopay.com/api`
-
-### Response Format
-
-**Success:**
-
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
-
-**Error:**
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Description"
-  }
-}
-```
-
-## 🔐 Security
-
-- **Authentication:** Privy DID for merchants, API keys for server-to-server
-- **API Keys:** Hashed with bcrypt, never stored in plaintext
-- **Webhooks:** Signed with HMAC SHA-256
-- **Non-custodial:** Merchants control their own wallets
 
 ## 🛠️ Tech Stack
 
-- **Runtime:** Next.js 15 (App Router)
+- **Framework:** Next.js 15 (App Router)
 - **Database:** MongoDB + Mongoose
-- **Auth:** Privy
-- **Blockchain:** Alchemy SDK
+- **Auth:** Privy (coming soon)
+- **Blockchain:** Alchemy SDK (coming soon)
 - **Language:** TypeScript
 
-## 📞 Support
+## 📦 Project Structure
 
-- **GitHub Issues:** [github.com/kairopay/kairopay/issues](https://github.com/kairopay/kairopay/issues)
-- **Email:** support@kairopay.com
-- **Discord:** [discord.gg/kairopay](https://discord.gg/kairopay)
+```
+apps/kairopay/
+├── app/api/          # API routes
+│   ├── merchant/     # Merchant endpoints
+│   └── orders/       # Order endpoints
+├── lib/
+│   ├── db/           # Database models
+│   ├── utils/        # Utilities
+│   ├── middleware/   # Auth middleware
+│   └── services/     # Webhook service
+├── types/            # TypeScript types
+└── docs/             # Documentation
+```
+
+## 🧪 Available Scripts
+
+```bash
+pnpm dev          # Start dev server
+pnpm build        # Build for production
+pnpm lint         # Run linter
+pnpm check-types  # Type checking
+```
+
+## 🚨 Troubleshooting
+
+**MongoDB connection failed:**
+
+```bash
+# Check if MongoDB is running
+brew services list
+
+# Restart MongoDB
+brew services restart mongodb-community
+```
+
+**Port already in use:**
+
+```bash
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
+```
+
+**Turbo cache issues:**
+
+```bash
+pnpm clean
+rm -rf .turbo node_modules/.cache
+```
+
+## 📖 Next Steps
+
+1. Read the **[API Reference](./api.md)**
+2. Integrate KairoPay into your app
+3. Test with webhook.site
+4. Deploy to production
+
+## 🔐 Security Notes
+
+- API keys are hashed with bcrypt
+- Webhooks are signed with HMAC SHA-256
+- All wallets are non-custodial
+- Merchants control their own keys
 
 ---
 
 **Version:** 0.1.0  
-**Last Updated:** October 21, 2025
+**Status:** Merchant & Orders API Complete ✅

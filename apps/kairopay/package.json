@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "exports": {
+    "./types": "./types/index.ts",
+    "./types/client": "./types/client.ts"
+  },
   "scripts": {
     "dev": "next dev --turbopack --port 3000",
     "build": "next build",

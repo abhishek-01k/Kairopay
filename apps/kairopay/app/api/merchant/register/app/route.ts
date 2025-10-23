@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const app_id = generateAppId();
-    const api_key = generateApiKey("sk_test");
+    const api_key = generateApiKey();
     const hashedApiKey = await hashApiKey(api_key);
 
     merchant.apps.push({
