@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import connectDB from "@/lib/db/mongodb";
 import { Order, Transaction } from "@/lib/db/models";
 import { successResponse, errorResponse } from "@/lib/utils/response";
-import { authenticateApiKey } from "@/lib/middleware/auth";
+import { authenticateRequest } from "@/lib/middleware/auth";
 import {
   dispatchWebhook,
   createWebhookEvent,
@@ -16,8 +16,8 @@ export async function POST(
   try {
     const { app_id, order_id } = await params;
 
-    // Authenticate and verify API key belongs to this app
-    const { error, context } = await authenticateApiKey(request, app_id);
+    // Authenticate with either API key or Privy token
+    const { error, context } = await authenticateRequest(request, app_id);
     if (error || !context) {
       return errorResponse(
         "UNAUTHORIZED",

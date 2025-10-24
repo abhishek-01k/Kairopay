@@ -3,7 +3,7 @@ import connectDB from "@/lib/db/mongodb";
 import { Order, Merchant, Transaction } from "@/lib/db/models";
 import { generateOrderId } from "@/lib/utils/id-generator";
 import { successResponse, errorResponse } from "@/lib/utils/response";
-import { authenticateApiKey } from "@/lib/middleware/auth";
+import { authenticateRequest } from "@/lib/middleware/auth";
 import {
   dispatchWebhook,
   createWebhookEvent,
@@ -23,8 +23,8 @@ export async function GET(
   try {
     const { app_id } = await params;
 
-    // Authenticate and verify API key belongs to this app
-    const { error, context } = await authenticateApiKey(request, app_id);
+    // Authenticate with either API key or Privy token
+    const { error, context } = await authenticateRequest(request, app_id);
     if (error || !context) {
       return errorResponse(
         "UNAUTHORIZED",
@@ -107,8 +107,8 @@ export async function POST(
   try {
     const { app_id } = await params;
 
-    // Authenticate and verify API key belongs to this app
-    const { error, context } = await authenticateApiKey(request, app_id);
+    // Authenticate with either API key or Privy token
+    const { error, context } = await authenticateRequest(request, app_id);
     if (error || !context) {
       return errorResponse(
         "UNAUTHORIZED",

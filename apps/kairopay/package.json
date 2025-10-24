@@ -15,6 +15,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@privy-io/node": "^0.3.0",
     "@repo/sdk": "workspace:*",
     "bcryptjs": "^3.0.2",
     "mongoose": "^8.19.2",
