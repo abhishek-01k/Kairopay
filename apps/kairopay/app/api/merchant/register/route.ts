@@ -1,18 +1,49 @@
 import { NextRequest } from "next/server";
+
 import connectDB from "@/lib/db/mongodb";
 import { Merchant } from "@/lib/db/models";
 import { generateMerchantId } from "@/lib/utils/id-generator";
 import { successResponse, errorResponse } from "@/lib/utils/response";
+import { logApiError } from "@/lib/utils/logger";
+import { validateRequiredFields } from "@/lib/validators";
 
+import type {
+  RegisterMerchantRequest,
+  RegisterMerchantResponse,
+} from "@/types/api";
+
+/**
+ * Register Merchant
+ *
+ * @route POST /api/merchant/register
+ * @description Register a new merchant with Privy DID and wallet addresses
+ * @access Public
+ *
+ * @body RegisterMerchantRequest
+ * @returns Merchant ID and profile information
+ *
+ * @example
+ * ```json
+ * {
+ *   "privy_did": "did:privy:test123",
+ *   "evm_wallet": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+ *   "sol_wallet": "FqE7vN9nDxDQAKXX4mhPJvS5vt6y4T9rC1qG9xKT9"
+ * }
+ * ```
+ */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Parse request body
+    const body: RegisterMerchantRequest = await request.json();
     const { privy_did, evm_wallet, sol_wallet } = body;
 
-    if (!privy_did) {
-      return errorResponse("INVALID_REQUEST", "privy_did is required");
+    // Validate required fields
+    const validation = validateRequiredFields(body, ["privy_did"]);
+    if (!validation.success) {
+      return errorResponse("INVALID_REQUEST", validation.error!);
     }
 
+    // Connect to database
     await connectDB();
 
     // Check if merchant already exists
@@ -25,8 +56,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate merchant ID
     const merchant_id = generateMerchantId();
 
+    // Create merchant
     const merchant = await Merchant.create({
       merchant_id,
       privy_did,
@@ -35,7 +68,8 @@ export async function POST(request: NextRequest) {
       apps: [],
     });
 
-    return successResponse(
+    // Return response
+    return successResponse<RegisterMerchantResponse>(
       {
         merchant_id: merchant.merchant_id,
         privy_did: merchant.privy_did,
@@ -46,7 +80,10 @@ export async function POST(request: NextRequest) {
       201
     );
   } catch (error) {
-    console.error("Error registering merchant:", error);
+    logApiError("POST", "/api/merchant/register", error, {
+      body: request.body,
+    });
+
     return errorResponse(
       "INTERNAL_ERROR",
       error instanceof Error ? error.message : "Unknown error",

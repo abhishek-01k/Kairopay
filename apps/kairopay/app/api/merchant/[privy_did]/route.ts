@@ -1,23 +1,42 @@
 import { NextRequest } from "next/server";
+
 import connectDB from "@/lib/db/mongodb";
 import { Merchant } from "@/lib/db/models";
+import { logApiError } from "@/lib/utils/logger";
 import { successResponse, errorResponse } from "@/lib/utils/response";
 
+import type { GetMerchantResponse, PrivyDidRouteParams } from "@/types/api";
+
+/**
+ * Get Merchant Profile
+ *
+ * @route GET /api/merchant/{privy_did}
+ * @description Get merchant profile with all apps (API keys not included)
+ * @access Public
+ *
+ * @param privy_did - Merchant's Privy DID
+ * @returns Merchant profile with apps list
+ */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ privy_did: string }> }
+  context: { params: Promise<PrivyDidRouteParams> }
 ) {
   try {
-    const { privy_did } = await params;
+    // Extract route params
+    const params = await context.params;
+    const { privy_did } = params;
 
+    // Connect to database
     await connectDB();
 
+    // Find merchant
     const merchant = await Merchant.findOne({ privy_did });
     if (!merchant) {
       return errorResponse("MERCHANT_NOT_FOUND", "Merchant not found", 404);
     }
 
-    return successResponse({
+    // Return merchant profile (API keys excluded for security)
+    return successResponse<GetMerchantResponse>({
       merchant_id: merchant.merchant_id,
       privy_did: merchant.privy_did,
       evm_wallet: merchant.evm_wallet,
@@ -27,12 +46,14 @@ export async function GET(
         name: app.name,
         webhook_url: app.webhook_url,
         created_at: app.created_at,
-        // Don't return api_key
       })),
       created_at: merchant.created_at,
     });
   } catch (error) {
-    console.error("Error fetching merchant:", error);
+    logApiError("GET", `/api/merchant/${params.privy_did}`, error, {
+      privy_did: params.privy_did,
+    });
+
     return errorResponse(
       "INTERNAL_ERROR",
       error instanceof Error ? error.message : "Unknown error",

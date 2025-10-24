@@ -1,25 +1,48 @@
 import { NextRequest } from "next/server";
+
 import connectDB from "@/lib/db/mongodb";
 import { Transaction } from "@/lib/db/models";
-import { successResponse, errorResponse } from "@/lib/utils/response";
 import { authenticateRequest } from "@/lib/middleware/auth";
+import { logApiError } from "@/lib/utils/logger";
+import { successResponse, errorResponse } from "@/lib/utils/response";
+import { validatePaginationParams } from "@/lib/validators";
+
+import type {
+  AppRouteParams,
+  ListTransactionsResponse,
+  TransactionDetails,
+} from "@/types/api";
 
 /**
- * GET /api/apps/{app_id}/transactions
+ * List Transactions
  *
- * List all transactions for an app (merchant dashboard)
- * Query params: status, chain, asset, limit, offset
+ * @route GET /api/apps/{app_id}/transactions
+ * @description List all transactions for an app with filtering and pagination
+ * @access Private (API Key or Privy Token)
+ *
+ * @query status - Filter by transaction status (optional)
+ * @query chain - Filter by blockchain (optional)
+ * @query asset - Filter by asset/token (optional)
+ * @query limit - Number of transactions per page (default: 50, max: 100)
+ * @query offset - Pagination offset (default: 0)
+ *
+ * @returns Paginated list of transactions with stats
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ app_id: string }> }
+  context: { params: Promise<AppRouteParams> }
 ) {
   try {
-    const { app_id } = await params;
+    // Extract route params
+    const params = await context.params;
+    const { app_id } = params;
 
     // Authenticate with either API key or Privy token
-    const { error, context } = await authenticateRequest(request, app_id);
-    if (error || !context) {
+    const { error, context: authContext } = await authenticateRequest(
+      request,
+      app_id
+    );
+    if (error || !authContext) {
       return errorResponse(
         "UNAUTHORIZED",
         error || "Authentication failed",
@@ -27,15 +50,15 @@ export async function GET(
       );
     }
 
+    // Connect to database
     await connectDB();
 
-    // Parse query params
+    // Parse and validate query params
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const chain = searchParams.get("chain");
     const asset = searchParams.get("asset");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const { limit, offset } = validatePaginationParams(searchParams);
 
     // Build query
     const query: Record<string, unknown> = { app_id };
@@ -65,20 +88,24 @@ export async function GET(
       0
     );
 
-    return successResponse({
-      transactions: transactions.map((tx) => ({
-        tx_hash: tx.tx_hash,
-        order_id: tx.order_id,
-        chain: tx.chain,
-        asset: tx.asset,
-        amount: tx.amount,
-        usd_value: tx.usd_value,
-        from: tx.from,
-        to: tx.to,
-        status: tx.status,
-        confirmed_at: tx.confirmed_at,
-        created_at: tx.created_at,
-      })),
+    // Map transactions to response format
+    const transactionDetails: TransactionDetails[] = transactions.map((tx) => ({
+      tx_hash: tx.tx_hash,
+      order_id: tx.order_id,
+      chain: tx.chain,
+      asset: tx.asset,
+      amount: tx.amount,
+      usd_value: tx.usd_value,
+      from: tx.from,
+      to: tx.to,
+      status: tx.status,
+      confirmed_at: tx.confirmed_at,
+      created_at: tx.created_at,
+    }));
+
+    // Return paginated response
+    return successResponse<ListTransactionsResponse>({
+      transactions: transactionDetails,
       stats: {
         total_transactions: total,
         total_volume_usd: parseFloat(totalVolume.toFixed(2)),
@@ -91,7 +118,13 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error fetching transactions:", error);
+    logApiError("GET", `/api/apps/${app_id}/transactions`, error, {
+      app_id,
+      status,
+      chain,
+      asset,
+    });
+
     return errorResponse(
       "INTERNAL_ERROR",
       error instanceof Error ? error.message : "Unknown error",

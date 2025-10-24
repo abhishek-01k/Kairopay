@@ -1,26 +1,39 @@
 import { NextRequest } from "next/server";
+
 import connectDB from "@/lib/db/mongodb";
 import { Order, Transaction, Merchant } from "@/lib/db/models";
-import { successResponse, errorResponse } from "@/lib/utils/response";
 import { authenticateRequest } from "@/lib/middleware/auth";
+import { logApiError } from "@/lib/utils/logger";
+import { successResponse, errorResponse } from "@/lib/utils/response";
+
+import type { AppBalancesResponse, AppRouteParams } from "@/types/api";
+
 import { ORDER_STATUS, TRANSACTION_STATUS } from "@/lib/constants";
 
 /**
- * GET /api/apps/{app_id}/balances
+ * Get App Statistics
  *
- * Get aggregated stats and balances for an app (merchant dashboard)
- * Includes: total orders, total revenue, transaction stats, wallet balances
+ * @route GET /api/apps/{app_id}/balances
+ * @description Get aggregated stats and balances for an app (merchant dashboard overview)
+ * @access Private (API Key or Privy Token)
+ *
+ * @returns Complete app statistics including orders, transactions, revenue, and breakdowns
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ app_id: string }> }
+  context: { params: Promise<AppRouteParams> }
 ) {
   try {
-    const { app_id } = await params;
+    // Extract route params
+    const params = await context.params;
+    const { app_id } = params;
 
     // Authenticate with either API key or Privy token
-    const { error, context } = await authenticateRequest(request, app_id);
-    if (error || !context) {
+    const { error, context: authContext } = await authenticateRequest(
+      request,
+      app_id
+    );
+    if (error || !authContext) {
       return errorResponse(
         "UNAUTHORIZED",
         error || "Authentication failed",
@@ -28,11 +41,12 @@ export async function GET(
       );
     }
 
+    // Connect to database
     await connectDB();
 
     // Get merchant wallet info
     const merchant = await Merchant.findOne({
-      merchant_id: context.merchant_id,
+      merchant_id: authContext.merchant_id,
     });
     if (!merchant) {
       return errorResponse("MERCHANT_NOT_FOUND", "Merchant not found", 404);
@@ -195,13 +209,22 @@ export async function GET(
         asset: tx.asset,
         amount: tx.amount,
         usd_value: tx.usd_value,
+        from: tx.from,
+        to: tx.to,
         status: tx.status,
+        confirmed_at: tx.confirmed_at,
         created_at: tx.created_at,
       })),
-      fetched_at: new Date().toISOString(),
+      fetched_at: new Date(),
     });
+
+    // Return typed response
+    return successResponse<AppBalancesResponse>(response);
   } catch (error) {
-    console.error("Error fetching app balances:", error);
+    logApiError("GET", `/api/apps/${app_id}/balances`, error, {
+      app_id,
+    });
+
     return errorResponse(
       "INTERNAL_ERROR",
       error instanceof Error ? error.message : "Unknown error",

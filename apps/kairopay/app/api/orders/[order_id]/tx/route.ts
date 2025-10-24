@@ -1,34 +1,72 @@
 import { NextRequest } from "next/server";
+
 import connectDB from "@/lib/db/mongodb";
 import { Order, Transaction } from "@/lib/db/models";
-import { successResponse, errorResponse } from "@/lib/utils/response";
 import {
   dispatchWebhook,
   createWebhookEvent,
 } from "@/lib/services/webhook-service";
+import { logApiError } from "@/lib/utils/logger";
+import { successResponse, errorResponse } from "@/lib/utils/response";
+import { validateRequiredFields } from "@/lib/validators";
+
+import type {
+  SubmitTransactionRequest,
+  SubmitTransactionResponse,
+} from "@/types/api";
+
 import { ORDER_STATUS, TRANSACTION_STATUS } from "@/lib/constants";
 
 /**
- * Public endpoint - No authentication required
- * Called by checkout frontend when customer submits payment
+ * Submit Transaction
+ *
+ * @route POST /api/orders/{order_id}/tx
+ * @description Submit a payment transaction for an order (called by checkout frontend)
+ * @access Public (No authentication required)
+ *
+ * @param order_id - Order ID
+ * @body SubmitTransactionRequest
+ * @returns Transaction submission status
+ *
+ * @example
+ * ```json
+ * {
+ *   "tx_hash": "0xabc123...",
+ *   "chain": "ethereum",
+ *   "asset": "USDC",
+ *   "from": "0xcustomer...",
+ *   "to": "0xmerchant...",
+ *   "amount": "25.00"
+ * }
+ * ```
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ order_id: string }> }
+  context: { params: Promise<{ order_id: string }> }
 ) {
   try {
-    const { order_id } = await params;
-    const body = await request.json();
+    // Extract route params
+    const params = await context.params;
+    const { order_id } = params;
+
+    // Parse request body
+    const body: SubmitTransactionRequest = await request.json();
     const { tx_hash, chain, asset, from, to, amount } = body;
 
     // Validate required fields
-    if (!tx_hash || !chain || !asset || !from || !to || !amount) {
-      return errorResponse(
-        "INVALID_REQUEST",
-        "Missing required fields: tx_hash, chain, asset, from, to, amount"
-      );
+    const validation = validateRequiredFields(body, [
+      "tx_hash",
+      "chain",
+      "asset",
+      "from",
+      "to",
+      "amount",
+    ]);
+    if (!validation.success) {
+      return errorResponse("INVALID_REQUEST", validation.error!);
     }
 
+    // Connect to database
     await connectDB();
 
     // Find order
@@ -74,7 +112,7 @@ export async function POST(
     order.status = ORDER_STATUS.PENDING;
     await order.save();
 
-    // Dispatch webhook
+    // Dispatch webhook (fire and forget)
     if (order.webhook_url) {
       const event = createWebhookEvent("order.pending", {
         order_id: order.order_id,
@@ -86,17 +124,23 @@ export async function POST(
         app_id: order.app_id,
       });
 
-      dispatchWebhook(order.webhook_url, event).catch(console.error);
+      dispatchWebhook(order.webhook_url, event).catch((err) =>
+        logApiError("POST", "/webhook", err, { order_id })
+      );
     }
 
-    return successResponse({
+    // Return success response
+    return successResponse<SubmitTransactionResponse>({
       status: "pending",
       message: "Transaction detected and queued for verification",
       tx_hash: transaction.tx_hash,
       order_id: order.order_id,
     });
   } catch (error) {
-    console.error("Error submitting transaction:", error);
+    logApiError("POST", `/api/orders/${order_id}/tx`, error, {
+      order_id,
+    });
+
     return errorResponse(
       "INTERNAL_ERROR",
       error instanceof Error ? error.message : "Unknown error",
