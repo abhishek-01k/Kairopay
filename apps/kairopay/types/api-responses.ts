@@ -104,6 +104,7 @@ export interface OrderDetails {
 export interface GetOrderResponse extends OrderDetails {
   merchant_wallet?: string;
   is_expired?: boolean;
+  transactions?: TransactionDetails[];
 }
 
 export interface ListOrdersResponse {

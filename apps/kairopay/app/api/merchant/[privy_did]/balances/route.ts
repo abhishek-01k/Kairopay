@@ -23,10 +23,11 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<PrivyDidRouteParams> }
 ) {
+  // Extract route params
+  const params = await context.params;
+  const { privy_did } = params;
+
   try {
-    // Extract route params
-    const params = await context.params;
-    const { privy_did } = params;
 
     // Connect to database
     await connectDB();

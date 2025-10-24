@@ -120,9 +120,13 @@ export async function GET(
       },
     });
   } catch (error) {
+    const params = await context.params;
+    const { app_id } = params;
+    const { searchParams } = new URL(request.url);
+    const errorStatus = searchParams.get("status") || undefined;
     logApiError("GET", `/api/apps/${app_id}/orders`, error, {
       app_id,
-      status,
+      status: errorStatus,
     });
 
     return errorResponse(
@@ -232,9 +236,18 @@ export async function POST(
       201
     );
   } catch (error) {
+    const params = await context.params;
+    const { app_id } = params;
+    let errorAmountUsd: number | undefined;
+    try {
+      const body = await request.json();
+      errorAmountUsd = body.amount_usd;
+    } catch {
+      errorAmountUsd = undefined;
+    }
     logApiError("POST", `/api/apps/${app_id}/orders`, error, {
       app_id,
-      amount_usd,
+      amount_usd: errorAmountUsd,
     });
 
     return errorResponse(

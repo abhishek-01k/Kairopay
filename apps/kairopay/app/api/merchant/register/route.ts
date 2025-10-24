@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
     const { privy_did, evm_wallet, sol_wallet } = body;
 
     // Validate required fields
-    const validation = validateRequiredFields(body, ["privy_did"]);
+    const validation = validateRequiredFields(
+      body as unknown as Record<string, unknown>,
+      ["privy_did"]
+    );
     if (!validation.success) {
       return errorResponse("INVALID_REQUEST", validation.error!);
     }

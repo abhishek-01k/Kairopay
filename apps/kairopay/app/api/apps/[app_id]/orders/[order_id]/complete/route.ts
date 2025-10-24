@@ -98,6 +98,8 @@ export async function POST(
       message: "Order marked as complete",
     });
   } catch (error) {
+    const params = await context.params;
+    const { app_id, order_id } = params;
     logApiError(
       "POST",
       `/api/apps/${app_id}/orders/${order_id}/complete`,

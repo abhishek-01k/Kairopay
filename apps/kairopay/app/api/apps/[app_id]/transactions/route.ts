@@ -32,11 +32,17 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<AppRouteParams> }
 ) {
-  try {
-    // Extract route params
-    const params = await context.params;
-    const { app_id } = params;
+  // Extract route params
+  const params = await context.params;
+  const { app_id } = params;
 
+  // Parse and validate query params
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status");
+  const chain = searchParams.get("chain");
+  const asset = searchParams.get("asset");
+
+  try {
     // Authenticate with either API key or Privy token
     const { error, context: authContext } = await authenticateRequest(
       request,
@@ -53,11 +59,6 @@ export async function GET(
     // Connect to database
     await connectDB();
 
-    // Parse and validate query params
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const chain = searchParams.get("chain");
-    const asset = searchParams.get("asset");
     const { limit, offset } = validatePaginationParams(searchParams);
 
     // Build query
@@ -105,6 +106,7 @@ export async function GET(
 
     // Return paginated response
     return successResponse<ListTransactionsResponse>({
+      items: transactionDetails,
       transactions: transactionDetails,
       stats: {
         total_transactions: total,
@@ -120,9 +122,9 @@ export async function GET(
   } catch (error) {
     logApiError("GET", `/api/apps/${app_id}/transactions`, error, {
       app_id,
-      status,
-      chain,
-      asset,
+      status: status || undefined,
+      chain: chain || undefined,
+      asset: asset || undefined,
     });
 
     return errorResponse(

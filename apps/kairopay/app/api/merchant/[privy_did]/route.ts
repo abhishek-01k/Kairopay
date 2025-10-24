@@ -21,10 +21,11 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<PrivyDidRouteParams> }
 ) {
+  // Extract route params
+  const params = await context.params;
+  const { privy_did } = params;
+
   try {
-    // Extract route params
-    const params = await context.params;
-    const { privy_did } = params;
 
     // Connect to database
     await connectDB();
@@ -50,8 +51,8 @@ export async function GET(
       created_at: merchant.created_at,
     });
   } catch (error) {
-    logApiError("GET", `/api/merchant/${params.privy_did}`, error, {
-      privy_did: params.privy_did,
+    logApiError("GET", `/api/merchant/${privy_did}`, error, {
+      privy_did,
     });
 
     return errorResponse(

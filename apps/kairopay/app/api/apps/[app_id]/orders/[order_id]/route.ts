@@ -82,6 +82,8 @@ export async function GET(
       updated_at: order.updated_at,
     });
   } catch (error) {
+    const params = await context.params;
+    const { app_id, order_id } = params;
     logApiError("GET", `/api/apps/${app_id}/orders/${order_id}`, error, {
       app_id,
       order_id,

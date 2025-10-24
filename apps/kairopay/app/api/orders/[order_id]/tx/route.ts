@@ -44,24 +44,20 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ order_id: string }> }
 ) {
-  try {
-    // Extract route params
-    const params = await context.params;
-    const { order_id } = params;
+  // Extract route params
+  const params = await context.params;
+  const { order_id } = params;
 
+  try {
     // Parse request body
     const body: SubmitTransactionRequest = await request.json();
     const { tx_hash, chain, asset, from, to, amount } = body;
 
     // Validate required fields
-    const validation = validateRequiredFields(body, [
-      "tx_hash",
-      "chain",
-      "asset",
-      "from",
-      "to",
-      "amount",
-    ]);
+    const validation = validateRequiredFields(
+      body as unknown as Record<string, unknown>,
+      ["tx_hash", "chain", "asset", "from", "to", "amount"]
+    );
     if (!validation.success) {
       return errorResponse("INVALID_REQUEST", validation.error!);
     }

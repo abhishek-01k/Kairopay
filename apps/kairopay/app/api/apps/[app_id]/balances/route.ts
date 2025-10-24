@@ -6,7 +6,7 @@ import { authenticateRequest } from "@/lib/middleware/auth";
 import { logApiError } from "@/lib/utils/logger";
 import { successResponse, errorResponse } from "@/lib/utils/response";
 
-import type { AppBalancesResponse, AppRouteParams } from "@/types/api";
+import type { AppRouteParams } from "@/types/api";
 
 import { ORDER_STATUS, TRANSACTION_STATUS } from "@/lib/constants";
 
@@ -217,10 +217,9 @@ export async function GET(
       })),
       fetched_at: new Date(),
     });
-
-    // Return typed response
-    return successResponse<AppBalancesResponse>(response);
   } catch (error) {
+    const params = await context.params;
+    const { app_id } = params;
     logApiError("GET", `/api/apps/${app_id}/balances`, error, {
       app_id,
     });
