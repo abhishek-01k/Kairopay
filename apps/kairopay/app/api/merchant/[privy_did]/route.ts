@@ -26,7 +26,6 @@ export async function GET(
   const { privy_did } = params;
 
   try {
-
     // Connect to database
     await connectDB();
 
