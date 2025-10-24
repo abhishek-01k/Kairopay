@@ -291,6 +291,205 @@ curl -X POST http://localhost:3000/api/apps/appABCD1234xyz5678/orders \
 
 ---
 
+### GET `/apps/{app_id}/orders`
+
+List all orders for an app (merchant dashboard).
+
+**Request:**
+
+```bash
+curl http://localhost:3000/api/apps/appABCD1234xyz5678/orders?status=completed&limit=20&offset=0 \
+  -H "Authorization: Bearer skXYZ123abc456DEF789ghi012JKL345mno678PQR901stu234VWX"
+```
+
+**Query Parameters:**
+
+- `status` (optional) - Filter by order status (created, pending, completed, verified, failed)
+- `limit` (optional) - Number of orders per page (default: 50, max: 100)
+- `offset` (optional) - Pagination offset (default: 0)
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "orders": [
+      {
+        "order_id": "ord_xyz789",
+        "merchant_id": "m_abc123",
+        "app_id": "appABCD1234xyz5678",
+        "customer_did": "did:privy:customer123",
+        "amount_usd": 25.0,
+        "currency": "USD",
+        "metadata": { "product": "T-shirt" },
+        "status": "completed",
+        "checkout_url": "http://localhost:3000/order/ord_xyz789",
+        "expires_at": "2025-10-21T12:15:00.000Z",
+        "transaction_count": 1,
+        "created_at": "2025-10-21T12:00:00.000Z",
+        "updated_at": "2025-10-21T12:05:30.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 150,
+      "limit": 20,
+      "offset": 0,
+      "has_more": true
+    }
+  }
+}
+```
+
+---
+
+### GET `/apps/{app_id}/transactions`
+
+List all transactions for an app (merchant dashboard).
+
+**Request:**
+
+```bash
+curl http://localhost:3000/api/apps/appABCD1234xyz5678/transactions?asset=USDC&limit=20 \
+  -H "Authorization: Bearer skXYZ123abc456DEF789ghi012JKL345mno678PQR901stu234VWX"
+```
+
+**Query Parameters:**
+
+- `status` (optional) - Filter by transaction status (pending, confirmed, failed)
+- `chain` (optional) - Filter by chain (ethereum, polygon, etc.)
+- `asset` (optional) - Filter by asset (USDC, USDT, ETH, etc.)
+- `limit` (optional) - Number of transactions per page (default: 50, max: 100)
+- `offset` (optional) - Pagination offset (default: 0)
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "transactions": [
+      {
+        "tx_hash": "0xabc123def456...",
+        "order_id": "ord_xyz789",
+        "chain": "ethereum",
+        "asset": "USDC",
+        "amount": 25.0,
+        "usd_value": 25.0,
+        "from": "0xcustomer...",
+        "to": "0xmerchant...",
+        "status": "confirmed",
+        "confirmed_at": "2025-10-21T12:05:30.000Z",
+        "created_at": "2025-10-21T12:05:00.000Z"
+      }
+    ],
+    "stats": {
+      "total_transactions": 250,
+      "total_volume_usd": 12500.5
+    },
+    "pagination": {
+      "total": 250,
+      "limit": 20,
+      "offset": 0,
+      "has_more": true
+    }
+  }
+}
+```
+
+---
+
+### GET `/apps/{app_id}/balances`
+
+Get aggregated stats and balances for an app (merchant dashboard overview).
+
+**Request:**
+
+```bash
+curl http://localhost:3000/api/apps/appABCD1234xyz5678/balances \
+  -H "Authorization: Bearer skXYZ123abc456DEF789ghi012JKL345mno678PQR901stu234VWX"
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "merchant": {
+      "merchant_id": "m_abc123",
+      "evm_wallet": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "sol_wallet": null
+    },
+    "orders": {
+      "total": 150,
+      "completed": 120,
+      "pending": 5,
+      "failed": 10
+    },
+    "transactions": {
+      "total": 125,
+      "confirmed": 120
+    },
+    "revenue": {
+      "total_usd": 3000.0,
+      "transaction_volume_usd": 2950.5
+    },
+    "breakdown": {
+      "by_asset": [
+        {
+          "asset": "USDC",
+          "count": 80,
+          "volume_usd": 2000.0
+        },
+        {
+          "asset": "USDT",
+          "count": 30,
+          "volume_usd": 750.0
+        },
+        {
+          "asset": "ETH",
+          "count": 10,
+          "volume_usd": 200.5
+        }
+      ],
+      "by_chain": [
+        {
+          "chain": "ethereum",
+          "count": 70,
+          "volume_usd": 1750.0
+        },
+        {
+          "chain": "polygon",
+          "count": 40,
+          "volume_usd": 1000.0
+        },
+        {
+          "chain": "base",
+          "count": 10,
+          "volume_usd": 200.5
+        }
+      ]
+    },
+    "recent_transactions": [
+      {
+        "tx_hash": "0xabc123...",
+        "order_id": "ord_xyz789",
+        "chain": "ethereum",
+        "asset": "USDC",
+        "amount": 25.0,
+        "usd_value": 25.0,
+        "status": "confirmed",
+        "created_at": "2025-10-21T12:05:00.000Z"
+      }
+    ],
+    "fetched_at": "2025-10-21T12:00:00.000Z"
+  }
+}
+```
+
+---
+
 ### POST `/orders/{order_id}/tx`
 
 Submit a payment transaction (called by checkout frontend).
@@ -413,6 +612,223 @@ curl http://localhost:3000/api/apps/app_xyz789/orders/ord_xyz789 \
   }
 }
 ```
+
+---
+
+## 📦 Order APIs (Public - For Checkout)
+
+### GET `/api/orders/{order_id}`
+
+Get order details for checkout page. **Public endpoint** - no authentication required.
+
+**Request:**
+
+```bash
+curl http://localhost:3000/api/orders/ord_xyz789
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": "ord_xyz789",
+    "merchant_id": "m_abc123",
+    "app_id": "appABCD1234xyz5678",
+    "amount_usd": 25.0,
+    "currency": "USD",
+    "metadata": {
+      "product": "T-shirt",
+      "size": "M"
+    },
+    "status": "pending",
+    "checkout_url": "https://payments.kairopay.com/order/ord_xyz789",
+    "merchant_wallet": "0xmerchant456...",
+    "expires_at": "2025-10-21T12:15:00.000Z",
+    "is_expired": false,
+    "transactions": [],
+    "created_at": "2025-10-21T12:00:00.000Z",
+    "updated_at": "2025-10-21T12:00:00.000Z"
+  }
+}
+```
+
+**Use Case:** Frontend checkout page loads order details to display to customer.
+
+---
+
+### POST `/api/orders/{order_id}/prepare-tx`
+
+Generate transaction calldata for payment. **Public endpoint** - no authentication required.
+
+Backend generates the exact transaction data (calldata) that frontend passes to `wallet.sendTransaction()`.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:3000/api/orders/ord_xyz789/prepare-tx \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chain": "eth-mainnet",
+    "asset": "USDC",
+    "customer_wallet": "0xcustomer123..."
+  }'
+```
+
+**Fields:**
+
+- `chain` (required) - Network (e.g., "eth-mainnet", "polygon-mainnet")
+- `asset` (required) - Token symbol (e.g., "USDC", "USDT", "ETH")
+- `customer_wallet` (required) - Customer's wallet address
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": "ord_xyz789",
+    "chain": "eth-mainnet",
+    "asset": "USDC",
+    "amount_usd": 25.0,
+    "transaction": {
+      "from": "0xcustomer123...",
+      "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "value": "0x0",
+      "data": "0xa9059cbb000000000000000000000000merchant456...0000000000000000000000000000000000000000000000000000000001312d00",
+      "chainId": 1,
+      "gasLimit": "0xC350",
+      "details": {
+        "asset": "USDC",
+        "amount": "25.0",
+        "amount_raw": "25000000",
+        "decimals": 6,
+        "usd_value": 25.0
+      }
+    },
+    "instructions": {
+      "step1": "Review transaction details",
+      "step2": "Call wallet.sendTransaction(transaction)",
+      "step3": "Submit tx_hash to POST /api/orders/{order_id}/tx"
+    }
+  }
+}
+```
+
+**Frontend Usage:**
+
+```typescript
+// Get transaction calldata from backend
+const res = await fetch(`/api/orders/${orderId}/prepare-tx`, {
+  method: "POST",
+  body: JSON.stringify({ chain, asset, customer_wallet }),
+});
+const { data } = await res.json();
+
+// Pass directly to wallet
+const tx = await wallet.sendTransaction(data.transaction);
+console.log("Transaction hash:", tx.hash);
+```
+
+**Supported Assets:**
+
+- Stablecoins: USDC, USDT, PYUSD (1:1 USD conversion)
+- Native tokens: ETH, MATIC (requires price oracle - coming soon)
+
+---
+
+## 🪙 Token & Balance APIs
+
+### GET `/api/evm/tokens/{wallet_address}`
+
+Fetch all tokens (native + ERC-20) for an EVM wallet address across multiple networks.
+
+**Query Parameters:**
+
+- `networks` (optional) - Comma-separated list of networks (default: "eth-mainnet")
+  - Examples: `eth-mainnet`, `polygon-mainnet,base-mainnet`, `arb-mainnet`
+- `withPrices` (optional) - Include USD prices (default: true)
+- `withMetadata` (optional) - Include token metadata (default: true)
+
+**Supported Networks:**
+
+- Ethereum: `eth-mainnet`, `eth-sepolia`
+- Polygon: `polygon-mainnet`, `polygon-amoy`
+- Arbitrum: `arb-mainnet`, `arb-sepolia`
+- Optimism: `opt-mainnet`, `opt-sepolia`
+- Base: `base-mainnet`, `base-sepolia`
+- BNB Chain: `bnb-mainnet`
+- Avalanche: `avax-mainnet`
+- More at [Alchemy Chains](https://dashboard.alchemy.com/chains)
+
+**Request:**
+
+```bash
+curl "http://localhost:3000/api/evm/tokens/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb?networks=eth-mainnet,polygon-mainnet,base-mainnet"
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "wallet_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "networks": ["eth-mainnet", "polygon-mainnet", "base-mainnet"],
+    "total_tokens": 5,
+    "total_value_usd": "1250.50",
+    "tokens": [
+      {
+        "network": "eth-mainnet",
+        "token_address": "0x0000000000000000000000000000000000000000",
+        "balance": "1500000000000000000",
+        "decimals": 18,
+        "symbol": "ETH",
+        "name": "Ethereum",
+        "logo": "https://...",
+        "price_usd": "2500.00",
+        "price_updated_at": "2025-10-21T12:00:00Z",
+        "value_usd": "3750.00",
+        "error": null
+      },
+      {
+        "network": "eth-mainnet",
+        "token_address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "balance": "500000000",
+        "decimals": 6,
+        "symbol": "USDC",
+        "name": "USD Coin",
+        "logo": "https://...",
+        "price_usd": "1.00",
+        "price_updated_at": "2025-10-21T12:00:00Z",
+        "value_usd": "500.00",
+        "error": null
+      },
+      {
+        "network": "polygon-mainnet",
+        "token_address": "0x0000000000000000000000000000000000001010",
+        "balance": "25000000000000000000",
+        "decimals": 18,
+        "symbol": "MATIC",
+        "name": "Polygon",
+        "logo": "https://...",
+        "price_usd": "0.50",
+        "value_usd": "12.50",
+        "error": null
+      }
+    ],
+    "fetched_at": "2025-10-21T12:00:00.000Z"
+  }
+}
+```
+
+**Use Cases:**
+
+- Display customer wallet balances during checkout
+- Show merchant wallet balances on dashboard
+- Asset selection for payment (customer chooses which token to pay with)
+- Portfolio tracking
 
 ---
 
