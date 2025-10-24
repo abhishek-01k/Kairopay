@@ -5,6 +5,9 @@ KairoPay is a non-custodial crypto payment gateway that lets merchants accept pa
 ## 📚 Documentation
 
 - **[API Reference](./api.md)** - Complete API documentation with examples
+- **[Dashboard APIs](./dashboard-apis.md)** - Merchant dashboard endpoints
+- **[Checkout Flow](./checkout-flow.md)** - Frontend integration guide
+- **[Payment Flow](./payment-flow.md)** - Payment verification details
 - **[TypeScript Types](../types/README.md)** - Type definitions for frontend
 - **[Database Models](./database-models.md)** - Database schema reference
 
@@ -159,4 +162,4 @@ rm -rf .turbo node_modules/.cache
 ---
 
 **Version:** 0.1.0  
-**Status:** Merchant & Orders API Complete ✅
+**Status:** Merchant, Orders & Dashboard APIs Complete ✅
